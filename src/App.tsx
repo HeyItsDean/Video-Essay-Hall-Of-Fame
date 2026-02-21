@@ -30,17 +30,7 @@ function AppShell() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>("Loading archive…");
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (!sortRef.current) return;
-      if (!sortRef.current.contains(e.target as Node)) setSortOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+  // sort dropdown moved into the page header (VideoExplorer) for better mobile layout
 
   useEffect(() => {
     applyTheme(theme);
@@ -108,7 +98,7 @@ function AppShell() {
               <span className="text-sm font-semibold tracking-tight">HoF</span>
             </div>
             <div className="min-w-0">
-              <div className="truncate text-lg font-semibold tracking-tight">
+              <div className="truncate text-sm sm:text-lg font-semibold tracking-tight">
                 Video Essay Hall of Fame
               </div>
               <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -154,108 +144,14 @@ function AppShell() {
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <nav className="flex w-full items-center gap-2 overflow-x-auto scrollbar-none sm:w-auto">
             <TabLink to="/" label="Discover" />
-            <TabLink to="/watch-later" label={`Watch later (${counts.watchLater})`} icon={<ListVideo className="h-4 w-4" />} />
-            <TabLink to="/favorites" label={`Favorites (${counts.favorites})`} icon={<Heart className="h-4 w-4" />} />
-            <TabLink to="/watched" label={`Watched (${counts.watched})`} icon={<CircleCheck className="h-4 w-4" />} />
+            <TabLink to="/watch-later" label={`Watch later`} icon={<ListVideo className="h-4 w-4" />} />
+            <TabLink to="/favorites" label={`Favorites`} icon={<Heart className="h-4 w-4" />} />
+            <TabLink to="/watched" label={`Watched`} icon={<CircleCheck className="h-4 w-4" />} />
           </nav>
 
           <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="hidden sm:inline">{videos.length.toLocaleString()} videos</span>
             <span className="text-zinc-300 dark:text-zinc-600">•</span>
-
-            <div ref={sortRef} className="relative">
-              <button
-                onClick={() => setSortOpen((s) => !s)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:shadow-md",
-                  "border-zinc-200 bg-white hover:bg-zinc-50",
-                  "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
-                  sortOpen && "ring-2 ring-indigo-200 dark:ring-indigo-600/30"
-                )}
-                aria-haspopup="menu"
-                aria-expanded={sortOpen}
-                title="Sort"
-              >
-                <span className="text-zinc-500 dark:text-zinc-400">Sort</span>
-                <span className="font-medium text-zinc-900 dark:text-white">
-                  {sortMode === "newest"
-                    ? "Newest"
-                    : sortMode === "oldest"
-                    ? "Oldest"
-                    : sortMode === "viewsDesc"
-                    ? "Most views"
-                    : sortMode === "viewsAsc"
-                    ? "Fewest views"
-                    : sortMode === "durationDesc"
-                    ? "Longest"
-                    : "Shortest"}
-                </span>
-                <svg className="h-3.5 w-3.5 text-zinc-400" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-
-              {sortOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-lg border bg-white shadow-lg dark:bg-zinc-900 dark:border-white/10 z-40">
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("newest");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Newest
-                  </button>
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("oldest");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Oldest
-                  </button>
-                  <div className="border-t" />
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("viewsDesc");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Most views
-                  </button>
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("viewsAsc");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Fewest views
-                  </button>
-                  <div className="border-t" />
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("durationDesc");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Longest
-                  </button>
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
-                    onClick={() => {
-                      setSortMode("durationAsc");
-                      setSortOpen(false);
-                    }}
-                  >
-                    Shortest
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -283,10 +179,10 @@ function AppShell() {
       {header}
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         <Routes>
-          <Route path="/" element={<VideoExplorer videos={videos} mode="discover" viewMode={viewMode} sortMode={sortMode} />} />
-          <Route path="/watch-later" element={<VideoExplorer videos={videos} mode="watchLater" viewMode={viewMode} sortMode={sortMode} />} />
-          <Route path="/favorites" element={<VideoExplorer videos={videos} mode="favorites" viewMode={viewMode} sortMode={sortMode} />} />
-          <Route path="/watched" element={<VideoExplorer videos={videos} mode="watched" viewMode={viewMode} sortMode={sortMode} />} />
+          <Route path="/" element={<VideoExplorer videos={videos} mode="discover" viewMode={viewMode} sortMode={sortMode} onSortChange={setSortMode} />} />
+          <Route path="/watch-later" element={<VideoExplorer videos={videos} mode="watchLater" viewMode={viewMode} sortMode={sortMode} onSortChange={setSortMode} />} />
+          <Route path="/favorites" element={<VideoExplorer videos={videos} mode="favorites" viewMode={viewMode} sortMode={sortMode} onSortChange={setSortMode} />} />
+          <Route path="/watched" element={<VideoExplorer videos={videos} mode="watched" viewMode={viewMode} sortMode={sortMode} onSortChange={setSortMode} />} />
         </Routes>
 
         

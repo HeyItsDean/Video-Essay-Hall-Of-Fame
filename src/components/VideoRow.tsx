@@ -9,12 +9,14 @@ export default function VideoRow({
   video,
   durationLabel,
   viewCount,
-  onOwnerClick
+  onOwnerClick,
+  isInActiveMode
 }: {
   video: Video;
   durationLabel: string;
   viewCount?: number;
   onOwnerClick?: (owner: string) => void;
+  isInActiveMode?: boolean;
 }) {
   // optional click handler when owner/channel name is clicked
   // This function will be passed in by the list view to filter by owner.
@@ -73,7 +75,8 @@ export default function VideoRow({
       rel="noreferrer"
       className={cn(
         "group flex gap-4 p-4 transition hover:bg-zinc-50 dark:hover:bg-white/5",
-        "relative z-0 hover:-translate-y-0.5 hover:z-30 hover:shadow-md"
+        "relative z-0 hover:-translate-y-0.5 hover:z-30 hover:shadow-md",
+        flags?.watched && !isInActiveMode && "filter grayscale opacity-60"
       )}
       title={video.title}
     >

@@ -7,7 +7,7 @@ import { useFlags } from "../state/flags";
 import VideoCard from "../components/VideoCard";
 import VideoRow from "../components/VideoRow";
 import { cn } from "../lib/cn";
-import { Filter, Search, X } from "lucide-react";
+import { Filter, Search, X, SlidersHorizontal } from "lucide-react";
 
 type Mode = "discover" | "watchLater" | "favorites" | "watched";
 type ViewMode = "cards" | "compact";
@@ -23,12 +23,14 @@ export default function VideoExplorer({
   videos,
   mode,
   viewMode,
-  sortMode
+  sortMode,
+  onSortChange
 }: {
   videos: Video[];
   mode: Mode;
   viewMode: ViewMode;
   sortMode: SortMode;
+  onSortChange?: (m: SortMode) => void;
 }) {
   const { flagsById } = useFlags();
 
@@ -122,6 +124,8 @@ export default function VideoExplorer({
   // Visible slice of the sorted results for paginated 'Load more' behavior.
   const visible = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
   const [randomize, setRandomize] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = React.useRef<HTMLDivElement | null>(null);
 
   function handleOwnerClick(owner: string) {
     setSelectedOwner(owner);
@@ -163,19 +167,98 @@ export default function VideoExplorer({
 
           <div className="flex items-center gap-2">
             <button
-            className={cn(
-              "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition",
-              "border-zinc-200 bg-white hover:bg-zinc-50",
-              "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-            )}
-            onClick={() => setShowFilters((s) => !s)}
-          >
-            <Filter className="h-4 w-4" />
-            <span>{showFilters ? "Hide filters" : "Show filters"}</span>
-          </button>
-            <button
               className={cn(
                 "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition",
+                "border-zinc-200 bg-white hover:bg-zinc-50",
+                "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+                showFilters && "ring-1 ring-indigo-100"
+              )}
+              onClick={() => setShowFilters((s) => !s)}
+            >
+              <Filter className="h-4 w-4" />
+              <span>Filters</span>
+            </button>
+
+            <div ref={sortRef} className="relative">
+              <button
+                onClick={() => setSortOpen((s) => !s)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition",
+                  "border-zinc-200 bg-white hover:bg-zinc-50",
+                  "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+                  sortOpen && "ring-2 ring-indigo-200 dark:ring-indigo-600/30"
+                )}
+                title="Sort"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-zinc-600" />
+                <span className="hidden sm:inline">Sort</span>
+              </button>
+
+              {sortOpen && (
+                <div className="absolute left-0 mt-2 w-44 rounded-lg border bg-white shadow-lg dark:bg-zinc-900 dark:border-white/10 z-40">
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("newest");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Newest
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("oldest");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Oldest
+                  </button>
+                  <div className="border-t" />
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("viewsDesc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Most views
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("viewsAsc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Fewest views
+                  </button>
+                  <div className="border-t" />
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("durationDesc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Longest
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      onSortChange?.("durationAsc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Shortest
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              className={cn(
+                "inline-flex items-center justify-center rounded-full border p-2 text-sm transition",
                 "border-zinc-200 bg-white hover:bg-zinc-50",
                 "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
                 randomize && "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600 dark:text-white"
@@ -183,7 +266,13 @@ export default function VideoExplorer({
               onClick={() => setRandomize((r) => !r)}
               title="Randomize list"
             >
-              Randomize
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="8.5" cy="8.5" r="0.9" fill="currentColor" />
+                <circle cx="15.5" cy="8.5" r="0.9" fill="currentColor" />
+                <circle cx="8.5" cy="15.5" r="0.9" fill="currentColor" />
+                <circle cx="15.5" cy="15.5" r="0.9" fill="currentColor" />
+              </svg>
             </button>
           </div>
         </div>
@@ -293,6 +382,7 @@ export default function VideoExplorer({
                 viewCount={parseNumberLoose(v.view_count)}
                 durationLabel={formatDuration(v.durationSeconds, v.duration)}
                 onOwnerClick={handleOwnerClick}
+                isInActiveMode={mode !== "discover"}
               />
             ))}
           </div>
@@ -317,6 +407,7 @@ export default function VideoExplorer({
                 viewCount={parseNumberLoose(v.view_count)}
                 durationLabel={formatDuration(v.durationSeconds, v.duration)}
                 onOwnerClick={handleOwnerClick}
+                isInActiveMode={mode !== "discover"}
               />
             ))}
           </div>

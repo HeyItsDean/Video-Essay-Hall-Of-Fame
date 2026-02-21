@@ -22,8 +22,9 @@ export default function VideoCard({
   const mq = useMemo(() => thumbnailUrl(video.videoId, "mq"), [video.videoId]);
   const hq = useMemo(() => thumbnailUrl(video.videoId, "hq"), [video.videoId]);
 
-  // Default to 'default' for speed, fallback to mq/hq/maxres
-  const [src, setSrc] = useState(defaultThumb ?? mq ?? hq ?? maxRes ?? "");
+  // Use the low-quality "default" thumb initially for bandwidth savings.
+  // Fall back progressively on error to slightly higher-res versions.
+  const [src, setSrc] = useState<string>(defaultThumb ?? mq ?? hq ?? maxRes ?? "");
 
   const primaryTopic = video.topics?.[0];
 
@@ -51,20 +52,21 @@ export default function VideoCard({
         )}
 
         <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-950/40">
-          {mq && (
-            <img
-              src={src}
-              srcSet={hq ? `${mq} 1x, ${hq} 2x` : undefined}
-              alt={video.title}
-              loading="lazy"
-              className="h-full w-full object-contain"
-              onError={() => {
-                // fallbacks: maxres -> hq -> mq
-                if (src === maxRes && hq) setSrc(hq);
-                else if (src !== mq && mq) setSrc(mq);
-              }}
-            />
-          )}
+          {/* Always render the img (using the low-res `src`) and avoid a large srcSet
+              so browsers don't eagerly download high-res images. We progressively
+              upgrade on load errors. */}
+          <img
+            src={src}
+            alt={video.title}
+            loading="lazy"
+            className="h-full w-full object-contain"
+            onError={() => {
+              // progressive fallbacks: default -> mq -> hq -> maxRes
+              if (src === defaultThumb && mq) setSrc(mq);
+              else if (src === mq && hq) setSrc(hq);
+              else if (src === hq && maxRes) setSrc(maxRes);
+            }}
+          />
 
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0 opacity-70" />
 

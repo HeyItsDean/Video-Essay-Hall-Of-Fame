@@ -10,6 +10,9 @@ html, body {
   height: 100%;
 }
 
+/* Reserve scrollbar space to avoid layout shift when pages change height */
+html { overflow-y: scroll; }
+
 ::selection {
   background: rgba(124, 58, 237, 0.35);
 }

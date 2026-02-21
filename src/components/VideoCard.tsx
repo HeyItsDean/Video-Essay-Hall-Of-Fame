@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import type { Video } from "../core/types";
 import { maxResThumbnailUrl, thumbnailUrl, formatCompactNumber } from "../core/utils";
 import { cn } from "../lib/cn";
@@ -25,6 +25,43 @@ export default function VideoCard({
   // Use the low-quality "default" thumb initially for bandwidth savings.
   // Fall back progressively on error to slightly higher-res versions.
   const [src, setSrc] = useState<string>(defaultThumb ?? mq ?? hq ?? maxRes ?? "");
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const upgradedRef = useRef(false);
+
+  // Upgrade to the next-higher quality when the card enters the viewport
+  // or on hover. Only upgrade by one step (not jump to maxres).
+  useEffect(() => {
+    if (upgradedRef.current) return;
+    const el = imgRef.current;
+    if (!el) return;
+
+    const upgradeOnce = () => {
+      if (upgradedRef.current) return;
+      // determine current index in the quality chain
+      const chain = [defaultThumb, mq, hq, maxRes].filter(Boolean) as string[];
+      const idx = chain.indexOf(src);
+      const next = idx >= 0 ? chain[Math.min(idx + 1, chain.length - 1)] : chain[0];
+      if (next && next !== src) {
+        setSrc(next);
+      }
+      upgradedRef.current = true;
+    };
+
+    if (typeof IntersectionObserver !== "undefined") {
+      const obs = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            upgradeOnce();
+            obs.unobserve(e.target);
+          }
+        }
+      });
+      obs.observe(el);
+      return () => obs.disconnect();
+    }
+
+    return undefined;
+  }, [defaultThumb, mq, hq, maxRes, src]);
 
   const primaryTopic = video.topics?.[0];
 
@@ -36,6 +73,7 @@ export default function VideoCard({
       className={cn(
         "group block overflow-hidden rounded-3xl border bg-white shadow-soft transition",
         "border-zinc-200 hover:-translate-y-0.5 hover:shadow-2xl",
+        "z-0 hover:z-30",
         "dark:border-white/10 dark:bg-white/5"
       )}
       title={video.title}
@@ -56,10 +94,20 @@ export default function VideoCard({
               so browsers don't eagerly download high-res images. We progressively
               upgrade on load errors. */}
           <img
+            ref={imgRef}
             src={src}
             alt={video.title}
             loading="lazy"
-            className="h-full w-full object-contain"
+            className="h-full w-full object-cover"
+            onMouseEnter={() => {
+              // hover-triggered single-step upgrade
+              if (upgradedRef.current) return;
+              const chain = [defaultThumb, mq, hq, maxRes].filter(Boolean) as string[];
+              const idx = chain.indexOf(src);
+              const next = idx >= 0 ? chain[Math.min(idx + 1, chain.length - 1)] : chain[0];
+              if (next && next !== src) setSrc(next);
+              upgradedRef.current = true;
+            }}
             onError={() => {
               // progressive fallbacks: default -> mq -> hq -> maxRes
               if (src === defaultThumb && mq) setSrc(mq);
@@ -155,7 +203,7 @@ function FlagButton({
         "inline-flex items-center justify-center rounded-xl border p-2 transition",
         "border-zinc-200 bg-white hover:bg-zinc-50",
         "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
-        active && "border-zinc-300 bg-zinc-50 text-zinc-900 dark:border-white/20 dark:bg-white/10 dark:text-white"
+        active && "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600 dark:text-white"
       )}
       onClick={onClick}
       title={label}

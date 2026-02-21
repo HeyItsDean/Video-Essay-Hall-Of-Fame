@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import type { Video } from "../core/types";
 import { formatCompactNumber, maxResThumbnailUrl, thumbnailUrl } from "../core/utils";
 import { cn } from "../lib/cn";
@@ -24,6 +24,38 @@ export default function VideoRow({
 
   // Default to 'default' for speed, fallback to mq/hq/maxres
   const [src, setSrc] = useState(defaultThumb ?? mq ?? hq ?? maxRes ?? "");
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const upgradedRef = useRef(false);
+
+  useEffect(() => {
+    if (upgradedRef.current) return;
+    const el = imgRef.current;
+    if (!el) return;
+
+    const upgradeOnce = () => {
+      if (upgradedRef.current) return;
+      const chain = [defaultThumb, mq, hq, maxRes].filter(Boolean) as string[];
+      const idx = chain.indexOf(src);
+      const next = idx >= 0 ? chain[Math.min(idx + 1, chain.length - 1)] : chain[0];
+      if (next && next !== src) setSrc(next);
+      upgradedRef.current = true;
+    };
+
+    if (typeof IntersectionObserver !== "undefined") {
+      const obs = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            upgradeOnce();
+            obs.unobserve(e.target);
+          }
+        }
+      });
+      obs.observe(el);
+      return () => obs.disconnect();
+    }
+
+    return undefined;
+  }, [defaultThumb, mq, hq, maxRes, src]);
 
   const primaryTopic = video.topics?.[0];
 
@@ -33,7 +65,8 @@ export default function VideoRow({
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "group flex gap-4 p-4 transition hover:bg-zinc-50 dark:hover:bg-white/5"
+        "group flex gap-4 p-4 transition hover:bg-zinc-50 dark:hover:bg-white/5",
+        "relative z-0 hover:-translate-y-0.5 hover:z-30 hover:shadow-md"
       )}
       title={video.title}
     >
@@ -47,19 +80,25 @@ export default function VideoRow({
           />
         )}
         <div className="relative aspect-video w-full">
-          {mq && (
-            <img
-              src={src}
-              srcSet={hq ? `${mq} 1x, ${hq} 2x` : undefined}
-              alt={video.title}
-              loading="lazy"
-              className="h-full w-full object-contain"
-              onError={() => {
-                if (src === maxRes && hq) setSrc(hq);
-                else if (src !== mq && mq) setSrc(mq);
-              }}
-            />
-          )}
+          <img
+            ref={imgRef}
+            src={src}
+            alt={video.title}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            onMouseEnter={() => {
+              if (upgradedRef.current) return;
+              const chain = [defaultThumb, mq, hq, maxRes].filter(Boolean) as string[];
+              const idx = chain.indexOf(src);
+              const next = idx >= 0 ? chain[Math.min(idx + 1, chain.length - 1)] : chain[0];
+              if (next && next !== src) setSrc(next);
+              upgradedRef.current = true;
+            }}
+            onError={() => {
+              if (src === maxRes && hq) setSrc(hq);
+              else if (src !== mq && mq) setSrc(mq);
+            }}
+          />
           <div className="absolute bottom-2 right-2 rounded-xl border border-white/15 bg-black/40 px-2 py-1 text-[11px] text-white backdrop-blur">
             {durationLabel}
           </div>
@@ -138,9 +177,9 @@ function FlagButton({
     <button
       className={cn(
         "inline-flex items-center justify-center rounded-xl border p-2 transition",
-        "border-zinc-200 bg-white hover:bg-zinc-50",
+        "border-zinc-200 bg-white hover:bg-zinc-50 active:scale-[0.98] shadow-sm hover:shadow-md",
         "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
-        active && "border-zinc-300 bg-zinc-50 text-zinc-900 dark:border-white/20 dark:bg-white/10 dark:text-white"
+        active && "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600 dark:text-white"
       )}
       onClick={onClick}
       title={label}

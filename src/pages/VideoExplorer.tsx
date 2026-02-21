@@ -32,11 +32,17 @@ export default function VideoExplorer({
   const [showFilters, setShowFilters] = useState(true);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [durationFilters, setDurationFilters] = useState<Array<"short" | "medium" | "long">>([]);
+  const [visibleCount, setVisibleCount] = useState<number>(50);
 
-  const allTopics = useMemo(() => {
-    const topics: string[] = [];
-    for (const v of videos) topics.push(...(v.topics ?? []));
-    return uniqSorted(topics);
+  const topicsWithCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const v of videos) {
+      for (const t of v.topics ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    const arr = Array.from(counts.entries()).map(([topic, count]) => ({ topic, count }));
+    // sort desc by count
+    arr.sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic));
+    return arr;
   }, [videos]);
 
   const base = useMemo(() => {
@@ -99,6 +105,25 @@ export default function VideoExplorer({
     return arr;
   }, [filtered, sortMode]);
 
+  // Visible slice of the sorted results for paginated 'Load more' behavior.
+  const visible = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
+  const [randomize, setRandomize] = useState(false);
+
+  function shuffle<T>(arr: T[]) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  }
+
+  // when randomize is on, present a shuffled sorted list
+  const displayedSorted = useMemo(() => (randomize ? shuffle(sorted) : sorted), [sorted, randomize]);
+  const displayedVisible = useMemo(() => displayedSorted.slice(0, visibleCount), [displayedSorted, visibleCount]);
+
   const title = mode === "discover" ? "Discover" : mode === "favorites" ? "Favorites" : mode === "watchLater" ? "Watch later" : "Watched";
 
   const subtitle = useMemo(() => {
@@ -111,13 +136,14 @@ export default function VideoExplorer({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-white/10 dark:bg-white/5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-base font-semibold tracking-tight">{title}</div>
             <div className="text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</div>
           </div>
 
-          <button
+          <div className="flex items-center gap-2">
+            <button
             className={cn(
               "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition",
               "border-zinc-200 bg-white hover:bg-zinc-50",
@@ -128,6 +154,19 @@ export default function VideoExplorer({
             <Filter className="h-4 w-4" />
             <span>{showFilters ? "Hide filters" : "Show filters"}</span>
           </button>
+            <button
+              className={cn(
+                "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition",
+                "border-zinc-200 bg-white hover:bg-zinc-50",
+                "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
+                randomize && "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600 dark:text-white"
+              )}
+              onClick={() => setRandomize((r) => !r)}
+              title="Randomize list"
+            >
+              Randomize
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-zinc-950/40">
@@ -157,15 +196,16 @@ export default function VideoExplorer({
             <div>
               <div className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">Topic</div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {allTopics.map((t) => (
+                {topicsWithCounts.map(({ topic, count }) => (
                   <Chip
-                    key={t}
-                    active={selectedTopics.includes(t)}
+                    key={topic}
+                    active={selectedTopics.includes(topic)}
                     onClick={() => {
-                      setSelectedTopics((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+                      setSelectedTopics((prev) => prev.includes(topic) ? prev.filter((x) => x !== topic) : [...prev, topic]);
                     }}
                   >
-                    {t}
+                    <span className="truncate">{topic}</span>
+                    <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">{count}</span>
                   </Chip>
                 ))}
               </div>
@@ -216,20 +256,32 @@ export default function VideoExplorer({
       {sorted.length === 0 ? (
         <EmptyState mode={mode} />
       ) : viewMode === "cards" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {sorted.map((v) => (
-            <VideoCard
-              key={v.id}
-              video={v}
-              viewCount={parseNumberLoose(v.view_count)}
-              durationLabel={formatDuration(v.durationSeconds, v.duration)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {displayedVisible.map((v) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                viewCount={parseNumberLoose(v.view_count)}
+                durationLabel={formatDuration(v.durationSeconds, v.duration)}
+              />
+            ))}
+          </div>
+          {displayedSorted.length > visibleCount && (
+            <div className="mt-4 flex items-center justify-center">
+              <button
+                className="rounded-2xl border px-4 py-2 text-sm font-medium"
+                onClick={() => setVisibleCount((c) => c + 50)}
+              >
+                Load more ({Math.min(50, sorted.length - visibleCount)} more)
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="rounded-3xl border border-zinc-200 bg-white shadow-soft dark:border-white/10 dark:bg-white/5">
           <div className="divide-y divide-zinc-200/60 dark:divide-white/10">
-            {sorted.map((v) => (
+            {displayedVisible.map((v) => (
               <VideoRow
                 key={v.id}
                 video={v}
@@ -238,6 +290,16 @@ export default function VideoExplorer({
               />
             ))}
           </div>
+          {displayedSorted.length > visibleCount && (
+            <div className="mt-4 flex items-center justify-center p-4">
+              <button
+                className="rounded-2xl border px-4 py-2 text-sm font-medium"
+                onClick={() => setVisibleCount((c) => c + 50)}
+              >
+                Load more ({Math.min(50, displayedSorted.length - visibleCount)} more)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -255,7 +317,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
         "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs transition",
         "border-zinc-200 bg-white hover:bg-zinc-50",
         "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10",
-        active && "border-zinc-300 bg-zinc-50 dark:border-white/20 dark:bg-white/10"
+        active && "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600 dark:text-white"
       )}
       onClick={onClick}
     >

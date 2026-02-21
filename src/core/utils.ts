@@ -95,9 +95,11 @@ export function durationBucket(seconds?: number): "short" | "medium" | "long" | 
   return "long";
 }
 
-export function thumbnailUrl(videoId?: string, size: "mq" | "hq" = "mq"): string | undefined {
+export function thumbnailUrl(videoId?: string, size: "default" | "mq" | "hq" = "default"): string | undefined {
   if (!videoId) return undefined;
-  const file = size === "hq" ? "hqdefault.jpg" : "mqdefault.jpg";
+  let file = "default.jpg";
+  if (size === "mq") file = "mqdefault.jpg";
+  else if (size === "hq") file = "hqdefault.jpg";
   return `https://i.ytimg.com/vi/${videoId}/${file}`;
 }
 

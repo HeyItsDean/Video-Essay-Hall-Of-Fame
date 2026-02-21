@@ -18,10 +18,12 @@ export default function VideoRow({
   const flags = flagsById[video.id];
 
   const maxRes = useMemo(() => maxResThumbnailUrl(video.videoId), [video.videoId]);
+  const defaultThumb = useMemo(() => thumbnailUrl(video.videoId, "default"), [video.videoId]);
   const mq = useMemo(() => thumbnailUrl(video.videoId, "mq"), [video.videoId]);
   const hq = useMemo(() => thumbnailUrl(video.videoId, "hq"), [video.videoId]);
 
-  const [src, setSrc] = useState(maxRes ?? hq ?? mq ?? "");
+  // Default to 'default' for speed, fallback to mq/hq/maxres
+  const [src, setSrc] = useState(defaultThumb ?? mq ?? hq ?? maxRes ?? "");
 
   const primaryTopic = video.topics?.[0];
 

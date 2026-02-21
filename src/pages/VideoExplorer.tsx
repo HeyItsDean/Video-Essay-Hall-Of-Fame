@@ -11,7 +11,13 @@ import { Filter, Search, X } from "lucide-react";
 
 type Mode = "discover" | "watchLater" | "favorites" | "watched";
 type ViewMode = "cards" | "compact";
-type SortMode = "new" | "views" | "duration";
+type SortMode =
+  | "newest"
+  | "oldest"
+  | "viewsDesc"
+  | "viewsAsc"
+  | "durationDesc"
+  | "durationAsc";
 
 export default function VideoExplorer({
   videos,
@@ -29,7 +35,8 @@ export default function VideoExplorer({
   const [query, setQuery] = useState("");
   const q = useDebouncedValue(query, 140);
 
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [durationFilters, setDurationFilters] = useState<Array<"short" | "medium" | "long">>([]);
   const [visibleCount, setVisibleCount] = useState<number>(50);
@@ -77,6 +84,7 @@ export default function VideoExplorer({
 
   const filtered = useMemo(() => {
     return searched.filter((v) => {
+      if (selectedOwner && v.owner !== selectedOwner) return false;
       if (selectedTopics.length > 0) {
         // OR match: any selected topic present
         const set = new Set(v.topics ?? []);
@@ -90,17 +98,23 @@ export default function VideoExplorer({
       }
       return true;
     });
-  }, [searched, selectedTopics, durationFilters]);
+  }, [searched, selectedTopics, durationFilters, selectedOwner]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
-    const byNew = (a: Video, b: Video) => (b.published_date ?? "").localeCompare(a.published_date ?? "");
-    const byViews = (a: Video, b: Video) => (parseNumberLoose(b.view_count) ?? 0) - (parseNumberLoose(a.view_count) ?? 0);
-    const byDuration = (a: Video, b: Video) => (b.durationSeconds ?? 0) - (a.durationSeconds ?? 0);
+    const byNewDesc = (a: Video, b: Video) => (b.published_date ?? "").localeCompare(a.published_date ?? "");
+    const byNewAsc = (a: Video, b: Video) => (a.published_date ?? "").localeCompare(b.published_date ?? "");
+    const byViewsDesc = (a: Video, b: Video) => (parseNumberLoose(b.view_count) ?? 0) - (parseNumberLoose(a.view_count) ?? 0);
+    const byViewsAsc = (a: Video, b: Video) => (parseNumberLoose(a.view_count) ?? 0) - (parseNumberLoose(b.view_count) ?? 0);
+    const byDurationDesc = (a: Video, b: Video) => (b.durationSeconds ?? 0) - (a.durationSeconds ?? 0);
+    const byDurationAsc = (a: Video, b: Video) => (a.durationSeconds ?? 0) - (b.durationSeconds ?? 0);
 
-    if (sortMode === "views") arr.sort(byViews);
-    else if (sortMode === "duration") arr.sort(byDuration);
-    else arr.sort(byNew);
+    if (sortMode === "viewsDesc") arr.sort(byViewsDesc);
+    else if (sortMode === "viewsAsc") arr.sort(byViewsAsc);
+    else if (sortMode === "durationDesc") arr.sort(byDurationDesc);
+    else if (sortMode === "durationAsc") arr.sort(byDurationAsc);
+    else if (sortMode === "oldest") arr.sort(byNewAsc);
+    else arr.sort(byNewDesc);
 
     return arr;
   }, [filtered, sortMode]);
@@ -108,6 +122,11 @@ export default function VideoExplorer({
   // Visible slice of the sorted results for paginated 'Load more' behavior.
   const visible = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
   const [randomize, setRandomize] = useState(false);
+
+  function handleOwnerClick(owner: string) {
+    setSelectedOwner(owner);
+    setShowFilters(true);
+  }
 
   function shuffle<T>(arr: T[]) {
     const a = arr.slice();
@@ -191,8 +210,10 @@ export default function VideoExplorer({
           )}
         </div>
 
-        {showFilters && (
-          <div className="mt-4 space-y-4">
+        <div className={cn(
+          "mt-4 space-y-4 overflow-hidden transition-all",
+          showFilters ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        )}>
             <div>
               <div className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">Topic</div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -233,24 +254,31 @@ export default function VideoExplorer({
               </div>
             </div>
 
-            {(selectedTopics.length > 0 || durationFilters.length > 0) && (
+            {(selectedTopics.length > 0 || durationFilters.length > 0 || selectedOwner) && (
               <div className="flex items-center justify-between">
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Active filters: {selectedTopics.length + durationFilters.length}
+                  Active filters: {selectedTopics.length + durationFilters.length + (selectedOwner ? 1 : 0)}
                 </div>
                 <button
                   className="text-xs font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-200"
                   onClick={() => {
                     setSelectedTopics([]);
                     setDurationFilters([]);
+                    setSelectedOwner(null);
                   }}
                 >
                   Clear all
                 </button>
               </div>
             )}
-          </div>
-        )}
+
+            {selectedOwner && (
+              <div className="mt-2 text-sm">
+                Showing results for: <span className="font-medium">{selectedOwner}</span>
+                <button className="ml-3 text-xs text-zinc-500 hover:underline" onClick={() => setSelectedOwner(null)}>clear</button>
+              </div>
+            )}
+        </div>
       </section>
 
       {sorted.length === 0 ? (
@@ -264,6 +292,7 @@ export default function VideoExplorer({
                 video={v}
                 viewCount={parseNumberLoose(v.view_count)}
                 durationLabel={formatDuration(v.durationSeconds, v.duration)}
+                onOwnerClick={handleOwnerClick}
               />
             ))}
           </div>
@@ -287,6 +316,7 @@ export default function VideoExplorer({
                 video={v}
                 viewCount={parseNumberLoose(v.view_count)}
                 durationLabel={formatDuration(v.durationSeconds, v.duration)}
+                onOwnerClick={handleOwnerClick}
               />
             ))}
           </div>

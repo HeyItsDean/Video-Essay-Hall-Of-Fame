@@ -11,7 +11,13 @@ import { CircleCheck, CloudOff, Heart, ListVideo, Moon, RefreshCcw, Sun } from "
 import VideoExplorer from "./pages/VideoExplorer";
 
 type ViewMode = "cards" | "compact";
-type SortMode = "new" | "views" | "duration";
+type SortMode =
+  | "newest"
+  | "oldest"
+  | "viewsDesc"
+  | "viewsAsc"
+  | "durationDesc"
+  | "durationAsc";
 
 function AppShell() {
   const online = useOnlineStatus();
@@ -19,7 +25,7 @@ function AppShell() {
 
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem("vehof-view") === "compact" ? "compact" : "cards"));
-  const [sortMode, setSortMode] = useState<SortMode>(() => (localStorage.getItem("vehof-sort") as SortMode) ?? "new");
+  const [sortMode, setSortMode] = useState<SortMode>(() => (localStorage.getItem("vehof-sort") as SortMode) ?? "newest");
 
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +103,7 @@ function AppShell() {
       <div className="mx-auto w-full max-w-6xl px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
+            
             <div className="grid h-10 w-10 place-items-center rounded-2xl border border-zinc-200 bg-white shadow-soft dark:border-white/10 dark:bg-white/5">
               <span className="text-sm font-semibold tracking-tight">HoF</span>
             </div>
@@ -171,7 +178,17 @@ function AppShell() {
               >
                 <span className="text-zinc-500 dark:text-zinc-400">Sort</span>
                 <span className="font-medium text-zinc-900 dark:text-white">
-                  {sortMode === "new" ? "Newest" : sortMode === "views" ? "Most views" : "Longest"}
+                  {sortMode === "newest"
+                    ? "Newest"
+                    : sortMode === "oldest"
+                    ? "Oldest"
+                    : sortMode === "viewsDesc"
+                    ? "Most views"
+                    : sortMode === "viewsAsc"
+                    ? "Fewest views"
+                    : sortMode === "durationDesc"
+                    ? "Longest"
+                    : "Shortest"}
                 </span>
                 <svg className="h-3.5 w-3.5 text-zinc-400" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                   <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -183,7 +200,7 @@ function AppShell() {
                   <button
                     className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
                     onClick={() => {
-                      setSortMode("new");
+                      setSortMode("newest");
                       setSortOpen(false);
                     }}
                   >
@@ -192,7 +209,17 @@ function AppShell() {
                   <button
                     className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
                     onClick={() => {
-                      setSortMode("views");
+                      setSortMode("oldest");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Oldest
+                  </button>
+                  <div className="border-t" />
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      setSortMode("viewsDesc");
                       setSortOpen(false);
                     }}
                   >
@@ -201,11 +228,30 @@ function AppShell() {
                   <button
                     className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
                     onClick={() => {
-                      setSortMode("duration");
+                      setSortMode("viewsAsc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Fewest views
+                  </button>
+                  <div className="border-t" />
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      setSortMode("durationDesc");
                       setSortOpen(false);
                     }}
                   >
                     Longest
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-white/5 dark:hover:text-white"
+                    onClick={() => {
+                      setSortMode("durationAsc");
+                      setSortOpen(false);
+                    }}
+                  >
+                    Shortest
                   </button>
                 </div>
               )}
@@ -242,6 +288,8 @@ function AppShell() {
           <Route path="/favorites" element={<VideoExplorer videos={videos} mode="favorites" viewMode={viewMode} sortMode={sortMode} />} />
           <Route path="/watched" element={<VideoExplorer videos={videos} mode="watched" viewMode={viewMode} sortMode={sortMode} />} />
         </Routes>
+
+        
 
         <footer className="mt-10 border-t border-zinc-200/60 pt-6 text-xs text-zinc-500 dark:border-white/5 dark:text-zinc-500">
           <p>

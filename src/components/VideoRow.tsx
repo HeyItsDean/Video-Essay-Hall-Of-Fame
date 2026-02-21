@@ -8,12 +8,19 @@ import { Bookmark, CheckCircle2, Heart } from "lucide-react";
 export default function VideoRow({
   video,
   durationLabel,
-  viewCount
+  viewCount,
+  onOwnerClick
 }: {
   video: Video;
   durationLabel: string;
   viewCount?: number;
+  onOwnerClick?: (owner: string) => void;
 }) {
+  // optional click handler when owner/channel name is clicked
+  // This function will be passed in by the list view to filter by owner.
+  // (Kept optional to avoid changing existing call sites.)
+  // Note: we intentionally don't add it to the typed props here to avoid
+  // changing existing imports; instead we'll accept it from closure if passed.
   const { flagsById, toggleFlag } = useFlags();
   const flags = flagsById[video.id];
 
@@ -111,7 +118,20 @@ export default function VideoRow({
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-          <span className="truncate">{video.owner ?? "Unknown channel"}</span>
+          {onOwnerClick ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onOwnerClick(video.owner ?? "Unknown channel");
+              }}
+              className="truncate text-sm font-medium hover:underline"
+            >
+              {video.owner ?? "Unknown channel"}
+            </button>
+          ) : (
+            <span className="truncate">{video.owner ?? "Unknown channel"}</span>
+          )}
           <span className="text-zinc-300 dark:text-zinc-600">•</span>
           <span>{formatCompactNumber(viewCount)} views</span>
           {primaryTopic && (

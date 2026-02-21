@@ -8,11 +8,13 @@ import { Bookmark, CheckCircle2, Heart, Play } from "lucide-react";
 export default function VideoCard({
   video,
   durationLabel,
-  viewCount
+  viewCount,
+  onOwnerClick
 }: {
   video: Video;
   durationLabel: string;
   viewCount?: number;
+  onOwnerClick?: (owner: string) => void;
 }) {
   const { flagsById, toggleFlag } = useFlags();
   const flags = flagsById[video.id];
@@ -138,7 +140,20 @@ export default function VideoCard({
 
         <div className="mt-2 flex items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400">
           <div className="min-w-0 truncate">
-            {video.owner ?? "Unknown channel"}
+            {onOwnerClick ? (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOwnerClick(video.owner ?? "Unknown channel");
+                }}
+                className="text-sm font-medium hover:underline"
+              >
+                {video.owner ?? "Unknown channel"}
+              </button>
+            ) : (
+              video.owner ?? "Unknown channel"
+            )}
           </div>
           <div className="shrink-0">{formatCompactNumber(viewCount)}</div>
         </div>

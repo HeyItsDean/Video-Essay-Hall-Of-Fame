@@ -120,35 +120,35 @@ export default function VideoRow({
           {video.title}
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-          {onOwnerClick ? (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onOwnerClick(video.owner ?? "Unknown channel");
-              }}
-              className="truncate text-sm font-medium hover:underline"
-            >
-              {video.owner ?? "Unknown channel"}
-            </button>
-          ) : (
-            <span className="truncate">{video.owner ?? "Unknown channel"}</span>
-          )}
-          <span className="text-zinc-300 dark:text-zinc-600">•</span>
-          <span>{formatCompactNumber(viewCount)} views</span>
-          {primaryTopic && (
-            <>
-              <span className="text-zinc-300 dark:text-zinc-600">•</span>
-              <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] dark:border-white/10 dark:bg-white/5">
-                {primaryTopic}
-              </span>
-            </>
-          )}
-        </div>
+        {primaryTopic && (
+          <div className="mt-2">
+            <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
+              {primaryTopic}
+            </span>
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between">
-          <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{video.published_date ?? ""}</div>
+          <div className="flex min-w-0 flex-1 items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+            {onOwnerClick ? (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOwnerClick(video.owner ?? "Unknown channel");
+                }}
+                className="truncate text-[11px] font-medium hover:underline"
+              >
+                {video.owner ?? "Unknown channel"}
+              </button>
+            ) : (
+              <span className="truncate text-[11px] font-medium">{video.owner ?? "Unknown channel"}</span>
+            )}
+            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+            <span className="whitespace-nowrap">{formatCompactNumber(viewCount)} views</span>
+            <span className="text-zinc-300 dark:text-zinc-600">•</span>
+            <span className="whitespace-nowrap">{video.published_date ?? ""}</span>
+          </div>
 
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <FlagButton

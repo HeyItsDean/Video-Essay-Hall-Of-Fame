@@ -5,6 +5,8 @@ Use one powerful search bar to explore 3000+ curated videos, filter by topic or 
 Mark videos as Watched, Watch Later, or Favorite.
 Works offline and caches thumbnails as you browse.
 
+---
+
 The original maker of the Video Essay Hall of Fame List is The Video Essay Guy:
 - Discord: @SIB#6405 (449491873338359808)
 - BlueSky: "Video Essay Guy" https://bsky.app/profile/did:plc:urp4ziqqycyynsltabqcoxxw
